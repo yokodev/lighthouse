@@ -36,8 +36,77 @@ function getFilenamePrefix(options) {
 
 // Some trace events are particularly large, and not only consume a LOT of disk
 // space, but also cause problems for the JSON stringifier. For simplicity, we exclude them
-function filterForSize(traceData) {
-  return traceData.filter(e => e.name !== 'LayoutTree');
+function filterForSize(traceEvents) {
+  return traceEvents.filter(e => e.name !== 'LayoutTree');
+}
+
+// inject 'em in there'
+function addMetrics(traceEvents, auditResults) {
+
+  var res = {};
+  auditResults.forEach(audit => {
+    res[audit.name] = audit;
+  });
+
+  const resFMP = res['first-meaningful-paint'];
+  const resFMPext = resFMP.extendedInfo;
+  const resSI = res['speed-index-metric'];
+  const resSIext = resSI.extendedInfo;
+  const resTTI = res['time-to-interactive'];
+  const resTTIext = resTTI.extendedInfo;
+  const navStart = resFMPext.value.timings.navStart;
+
+  const timings = [{
+    name: 'First Contentful Paint',
+    traceEvtName: 'MarkFCP',
+    value: resFMPext && (navStart + resFMPext.value.timings.fCP),
+  }, {
+    name: 'First Meaningful Paint',
+    traceEvtName: 'MarkFMP',
+    value: navStart + resFMP.rawValue,
+  }, {
+    name: 'Perceptual Speed Index',
+    traceEvtName: 'MarkVC50',
+    value: navStart + resSI.rawValue,
+  }, {
+    name: 'First Visual Change',
+    traceEvtName: 'MarkVC1',
+    value: resSIext && (navStart + resSIext.value.first),
+  }, {
+    name: 'Visually Complete 100%',
+    traceEvtName: 'MarkVC100',
+    value: resSIext && (navStart + resSIext.value.complete),
+  }, {
+    name: 'Time to Interactive',
+    traceEvtName: 'MarkTTI',
+    value: navStart + resTTI.rawValue,
+  }, {
+    name: 'Visually Complete 85%',
+    traceEvtName: 'MarkVC85',
+    value: resTTIext && (navStart + resTTIext.value.timings.visuallyReady),
+  }, {
+    name: 'Navigation Start',
+    traceEvtName: 'MarkNavStart',
+    value: navStart
+  }];
+
+  // We'll masquerade our fake events as a combination of TracingStartedInPage & MarkDOMContent
+  var tracingStartedInPageEvt = traceEvents.filter(e => e.name === 'TracingStartedInPage').shift();
+  var dCLEvent = traceEvents.filter(e => e.name === 'MarkDOMContent').pop();
+
+  timings.forEach(timing => {
+    if (!timing.value) {
+      return;
+    }
+    const fakeEvent = Object.assign({}, dCLEvent, {
+      name: timing.traceEvtName,
+      ts: timing.value * 1000,
+      pid: tracingStartedInPageEvt.pid,
+      tid: tracingStartedInPageEvt.tid
+    });
+    traceEvents.push(fakeEvent);
+  });
+  return traceEvents;
 }
 
 function screenshotDump(options, screenshots) {
@@ -91,7 +160,7 @@ function saveArtifacts(artifacts, filename) {
  * @param {!Artifacts} artifacts
  * @return {!Promise<!Array<{traceData: !Object, html: string}>>}
  */
-function prepareAssets(options, artifacts) {
+function prepareAssets(options, artifacts, auditResults) {
   const passNames = Object.keys(artifacts.traces);
   const assets = [];
 
@@ -102,6 +171,7 @@ function prepareAssets(options, artifacts) {
       .then(screenshots => {
         const traceData = Object.assign({}, trace);
         traceData.traceEvents = filterForSize(traceData.traceEvents);
+        traceData.traceEvents = addMetrics(traceData.traceEvents, auditResults);
         const html = screenshotDump(options, screenshots);
 
         assets.push({
@@ -119,11 +189,10 @@ function prepareAssets(options, artifacts) {
  * @param {!Artifacts} artifacts
  * @return {!Promise}
  */
-function saveAssets(options, artifacts) {
-  return prepareAssets(options, artifacts).then(assets => {
+function saveAssets(options, artifacts, auditResults) {
+  return prepareAssets(options, artifacts, auditResults).then(assets => {
     assets.forEach((data, index) => {
       const filenamePrefix = getFilenamePrefix(options);
-
       const traceData = data.traceData;
       fs.writeFileSync(`${filenamePrefix}-${index}.trace.json`, stringify(traceData, null, 2));
       log.log('trace file saved to disk', filenamePrefix);

@@ -29,6 +29,7 @@ class Runner {
   static run(connection, opts) {
     // Clean opts input.
     opts.flags = opts.flags || {};
+    let artifactsForLater;
 
     const config = opts.config;
 
@@ -75,16 +76,10 @@ class Runner {
 
       // Ignoring these two flags for coverage as this functionality is not exposed by the module.
       /* istanbul ignore next */
-      if (opts.flags.saveArtifacts) {
+      if (opts.flags.saveArtifacts || opts.flags.saveAssets) {
         run = run.then(artifacts => {
-          opts.flags.saveArtifacts && assetSaver.saveArtifacts(artifacts);
+          artifactsForLater = artifacts;
           return artifacts;
-        });
-      }
-      if (opts.flags.saveAssets) {
-        run = run.then(artifacts => {
-          return assetSaver.saveAssets(opts, artifacts)
-            .then(_ => artifacts);
         });
       }
 
@@ -133,6 +128,16 @@ class Runner {
           aggregations
         };
       });
+
+    /* istanbul ignore next */
+    if (opts.flags.saveArtifacts || opts.flags.saveAssets) {
+      // save assets to disk after audits, so we can integrate the metrics results
+      run = run.then(auditResults => {
+        opts.flags.saveArtifacts && assetSaver.saveArtifacts(artifactsForLater);
+        opts.flags.saveAssets && assetSaver.saveAssets(opts, artifactsForLater, auditResults);
+        return auditResults;
+      });
+    }
 
     return run;
   }
