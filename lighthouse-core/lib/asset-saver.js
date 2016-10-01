@@ -42,6 +42,9 @@ function filterForSize(traceEvents) {
 
 // inject 'em in there'
 function addMetrics(traceEvents, auditResults) {
+  if (!auditResults) {
+    return traceEvents;
+  }
 
   var res = {};
   auditResults.forEach(audit => {
@@ -54,6 +57,8 @@ function addMetrics(traceEvents, auditResults) {
   const resSIext = resSI.extendedInfo;
   const resTTI = res['time-to-interactive'];
   const resTTIext = resTTI.extendedInfo;
+
+  // monotonic clock ts from the trace.
   const navStart = resFMPext.value.timings.navStart;
 
   const timings = [{
@@ -90,21 +95,40 @@ function addMetrics(traceEvents, auditResults) {
     value: navStart
   }];
 
-  // We'll masquerade our fake events as a combination of TracingStartedInPage & MarkDOMContent
-  var tracingStartedInPageEvt = traceEvents.filter(e => e.name === 'TracingStartedInPage').shift();
-  var dCLEvent = traceEvents.filter(e => e.name === 'MarkDOMContent').pop();
+  const filteredEvents = traceEvents.filter(e => {
+    return e.name === 'TracingStartedInPage' || e.cat === 'blink.user_timing' || e.name === 'navigationStart';
+  });
 
+  // We'll masquerade our fake events as a combination of TracingStartedInPage & navigationStart
+  // {"pid":89922,"tid":1295,"ts":77174383652,"ph":"I","cat":"disabled-by-default-devtools.timeline","name":"TracingStartedInPage","args":{"data":{"page":"0x2a34d8e01e08","sessionId":"89922.4"}},"tts":1076978,"s":"t"},
+  // {"pid":89922, "tid":1295, "ts":134015115578, "ph":"R", "cat":"blink.user_timing", "name":"navigationStart", "args":{ "frame":"0x202a71ba1e20"},"tts":299930 }
+  const refEvent = filteredEvents.filter(e => e.name === 'TracingStartedInPage')[0];
+  const navigationStartEvt = filteredEvents.filter(e => {
+    return e.name === 'navigationStart' && e.pid === refEvent.pid && e.tid === refEvent.tid;
+  })[0];
+
+  // We are constructing performance.measure trace events, which have a start and end as follows:
+  // {"pid": 89922,"tid":1295,"ts":77176783452,"ph":"b","cat":"blink.user_timing","name":"innermeasure","args":{},"tts":1257886,"id":"0xe66c67"}
+  // { "pid":89922,"tid":1295,"ts":77176882592, "ph":"e", "cat":"blink.user_timing", "name":"innermeasure", "args":{ },"tts":1257898, "id":"0xe66c67" }
+  let counter = (Math.random() * 1000000) | 0;
   timings.forEach(timing => {
-    if (!timing.value) {
+    if (!timing.value || timing.value === navStart) {
       return;
     }
-    const fakeEvent = Object.assign({}, dCLEvent, {
-      name: timing.traceEvtName,
-      ts: timing.value * 1000,
-      pid: tracingStartedInPageEvt.pid,
-      tid: tracingStartedInPageEvt.tid
+    const eventBase = {
+      name: timing.name,
+      id: `0x${(counter++).toString(16)}`,
+      cat: 'blink.user_timing',
+    };
+    const fakeMeasureStartEvent = Object.assign({}, navigationStartEvt, eventBase, {
+      ts: Math.floor(navStart * 1000),
+      ph: 'b'
     });
-    traceEvents.push(fakeEvent);
+    const fakeMeasureEndEvent = Object.assign({}, navigationStartEvt, eventBase, {
+      ts: Math.floor(timing.value * 1000),
+      ph: 'e',
+    });
+    traceEvents.push(fakeMeasureStartEvent, fakeMeasureEndEvent);
   });
   return traceEvents;
 }
