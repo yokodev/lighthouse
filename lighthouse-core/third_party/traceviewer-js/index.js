@@ -5,7 +5,4 @@ Use of this source code is governed by a BSD-style license that can be
 found in the LICENSE file.
 **/
 
-require("./importer/import.js");
-require("./model/model.js");
-require("./extras/lean_config.js");
-require("./metrics/all_metrics.js");
+require("./base/statistics");

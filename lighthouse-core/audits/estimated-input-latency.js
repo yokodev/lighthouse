@@ -42,10 +42,7 @@ class EstimatedInputLatency extends Audit {
   static calculate(speedline, trace) {
     // Use speedline's first paint as start of range for input latency check.
     const startTime = speedline.first;
-
-    const tracingProcessor = new TracingProcessor();
-    const model = tracingProcessor.init(trace);
-    const latencyPercentiles = TracingProcessor.getRiskToResponsiveness(model, trace, startTime);
+    const latencyPercentiles = TracingProcessor.getRiskToResponsiveness(trace, startTime);
 
     const ninetieth = latencyPercentiles.find(result => result.percentile === 0.9);
     const rawValue = parseFloat(ninetieth.time.toFixed(1));

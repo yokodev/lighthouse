@@ -73,10 +73,9 @@ class TTIMetric extends Audit {
           fmpResult.extendedInfo.value.timings;
 
       // Process the trace
-      const tracingProcessor = new TracingProcessor();
       const trace = artifacts.traces[Audit.DEFAULT_PASS];
-      const model = tracingProcessor.init(trace);
-      const endOfTraceTime = model.bounds.max;
+      const traceEvents = trace.traceEvents;
+      const endOfTraceTime = (traceEvents[traceEvents.length - 1].ts - traceEvents[0].ts) / 1000;
 
       // TODO: Wait for DOMContentLoadedEndEvent
       // TODO: Wait for UA loading indicator to be done
@@ -117,7 +116,7 @@ class TTIMetric extends Audit {
         }
         // Get our expected latency for the time window
         const latencies = TracingProcessor.getRiskToResponsiveness(
-          model, trace, startTime, endTime, percentiles);
+          trace, startTime, endTime, percentiles);
         const estLatency = latencies[0].time.toFixed(2);
         foundLatencies.push({
           estLatency: estLatency,

@@ -198,23 +198,24 @@ describe('TracingProcessor lib', () => {
         };
       };
     });
-    afterEach(() => {
-      TracingProcessor._riskPercentiles = oldFn;
-    });
 
     it('gets durations of top-level tasks', () => {
-      const tracingProcessor = new TracingProcessor();
-      const model = tracingProcessor.init(pwaTrace);
-      const ret = TracingProcessor.getRiskToResponsiveness(model, {traceEvents: pwaTrace});
+      const ret = TracingProcessor.getRiskToResponsiveness({traceEvents: pwaTrace});
       const durations = ret.durations;
 
-      assert.equal(durations.filter(dur => isNaN(dur).length), 0);
-      assert.equal(durations.length, 309);
-      assert.equal(durations[50], 0.012);
-      assert.equal(durations[100], 0.053);
-      assert.equal(durations[200], 0.558);
-      assert.equal(durations[302], 14.815);
+      assert.equal(durations.filter(dur => isNaN(dur)).length, 0, 'NaN found');
+      assert.equal(durations.filter(dur => dur === Infinity).length, 0, 'Infinity found');
+      assert.equal(durations.length, 292, 'count of durations is unexpected');
+      assert.equal(durations[50], 0.019);
+      assert.equal(durations[100], 0.072);
+      assert.equal(durations[200], 0.768);
+      assert.equal(durations[durations.length - 3].toFixed(2), '26.32');
+      assert.equal(durations[durations.length - 2].toFixed(2), '37.61');
       assert.equal(durations[durations.length - 1].toFixed(2), '40.10');
+    });
+
+    afterEach(() => {
+      TracingProcessor._riskPercentiles = oldFn;
     });
   });
 });
