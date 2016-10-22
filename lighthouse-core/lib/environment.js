@@ -21,9 +21,8 @@ const vm = require('vm');
 
 function checkNodeCompatibility() {
   // node 5.x required due to use of ES2015 features, like spread operator
-  if (semver.gte(process.version, '5.0.0')) {
+  if (semver.gte(process.version, '5.0.0'))
     return true;
-  }
 
   try {
     // Test for the availability of the spread operator.

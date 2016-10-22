@@ -24,6 +24,7 @@
       "argsIgnorePattern": "(^reject$|^_$)",
       "varsIgnorePattern": "(^_$)"
     }],
+    "arrow-parens": [2, "as-needed"],
     "quotes": [2, "single"],
     "require-jsdoc": 0,
     "valid-jsdoc": 0,

@@ -66,7 +66,7 @@ class FirstMeaningfulPaint extends Audit {
       const fMPwebfont = this.findFirstMeaningfulPaint(evts, {webFont: true});
       const fMPfull = this.findFirstMeaningfulPaint(evts, {pageHeight: true, webFont: true});
 
-      var data = {
+      const data = {
         navStart,
         fmpCandidates: {
           fCP,
@@ -268,7 +268,7 @@ module.exports = FirstMeaningfulPaint;
  * Math.max, but with NaN values removed
  * @param {...number} _
  */
-function max(_) {
-  const args = [...arguments].filter(val => !isNaN(val));
-  return Math.max.apply(Math, args);
+function max(...args) {
+  args = args.filter(val => !isNaN(val));
+  return Math.max(...args);
 }

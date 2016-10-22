@@ -53,7 +53,7 @@ class CriConnection extends Connection {
         port: port,
         path: '/json/' + command
       }, response => {
-        var data = '';
+        let data = '';
         response.on('data', chunk => {
           data += chunk;
         });
