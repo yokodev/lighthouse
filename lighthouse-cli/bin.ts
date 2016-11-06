@@ -171,7 +171,7 @@ const cleanup: {fns: Array<Function>,
 
 function launchChromeAndRun(addresses: Array<string>,
                             config: Object,
-                            opts?: {selectChrome: boolean}) {
+                            opts?: {selectChrome?: boolean, lighthouseFlags?: Object}) {
 
   opts = opts || cli;
 
@@ -187,18 +187,21 @@ function launchChromeAndRun(addresses: Array<string>,
       log.log('Lighthouse CLI', 'Launching Chrome...');
       return launcher.run();
     })
-    .then(() => lighthouseRun(addresses, config))
+    .then(() => lighthouseRun(addresses, config, opts.lighthouseFlags))
     .then(() => launcher.kill());
 }
 
-function lighthouseRun(addresses: Array<string>, config: Object) {
+function lighthouseRun(addresses: Array<string>, config: Object, lighthouseFlags?: Object) {
+  // Enable a programatic consumer to pass custom flags otherwise default to CLI.
+  lighthouseFlags = lighthouseFlags || flags;
+
   // Process URLs once at a time
   const address = addresses.shift();
   if (!address) {
     return;
   }
 
-  return lighthouse(address, flags, config)
+  return lighthouse(address, lighthouseFlags, config)
     .then((results: Results) => Printer.write(results, outputMode, outputPath))
     .then((results: Results) => {
       if (outputMode === Printer.OutputMode[Printer.OutputMode.pretty]) {
@@ -235,9 +238,9 @@ function handleError(err: LightHouseError) {
   }
 }
 
-function run() {
+function run(lighthouseFlags?: Object) {
   if (cli.skipAutolaunch) {
-    lighthouseRun(urls, config).catch(handleError);
+    lighthouseRun(urls, config, lighthouseFlags).catch(handleError);
   } else {
     // because you can't cancel a promise yet
     const isSigint = new Promise((resolve, reject) => {
@@ -245,7 +248,9 @@ function run() {
     });
 
     Promise
-      .race([launchChromeAndRun(urls, config), isSigint])
+      .race([launchChromeAndRun(urls, config, {
+        lighthouseFlags: lighthouseFlags
+      }), isSigint])
       .catch(maybeSigint => {
         if (maybeSigint === _SIGINT) {
           return cleanup
