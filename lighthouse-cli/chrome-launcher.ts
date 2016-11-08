@@ -189,7 +189,7 @@ class ChromeLauncher {
           .isDebuggerReady()
           .then(() => {
             log.log('ChromeLauncher', waitStatus + `${green}✓${reset}`);
-            resolve();
+            setTimeout(resolve, 3000);
           })
           .catch(err => {
             if (retries > 10) {

@@ -262,6 +262,11 @@ class Driver {
     let cancel;
 
     const promise = new Promise((resolve, reject) => {
+      // If this is in our warmUpConnection, then skip this
+      if (!this._networkRecorder) {
+        return resolve();
+      }
+
       const onIdle = () => {
         // eslint-disable-next-line no-use-before-define
         this._networkRecorder.once('networkbusy', onBusy);

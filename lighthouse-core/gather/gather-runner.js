@@ -76,6 +76,8 @@ class GatherRunner {
       .then(_ => options.config.recordTrace && driver.beginTrace())
       // Network is always recorded for internal use, even if not saved as artifact.
       .then(_ => driver.beginNetworkCollect(options))
+      // Wait 500ms before the navigation.
+      .then(_ => new Promise(resolve => setTimeout(resolve, 500)))
       // Navigate.
       .then(_ => driver.gotoURL(options.url, {
         waitForLoad: true,
@@ -91,7 +93,19 @@ class GatherRunner {
       .then(_ => driver.beginEmulation(options.flags))
       .then(_ => driver.enableRuntimeEvents())
       .then(_ => driver.cleanAndDisableBrowserCaches())
-      .then(_ => driver.clearDataForOrigin(options.url));
+      .then(_ => driver.clearDataForOrigin(options.url))
+      .then(_ => GatherRunner.warmUpConnnection(driver));
+  }
+
+  /**
+   * A fresh build of Chrome may not have an initialized proxy configuration. See #817
+   * Downloading and applying this can add 0.5-3s of latency to the first navigation,
+   * So wait until a throwaway navigation is complete before measuring our page load.
+   * @return {!Promise}
+   */
+  static warmUpConnnection(driver) {
+    const url = 'http://connectivitycheck.gstatic.com/hello_lighthouse';
+    return driver.gotoURL(url, {waitForLoad: true});
   }
 
   static disposeDriver(driver) {
