@@ -40,7 +40,7 @@ class FirstMeaningfulPaint extends Audit {
       name: 'first-meaningful-paint',
       description: 'First meaningful paint',
       optimalValue: SCORING_POINT_OF_DIMINISHING_RETURNS.toLocaleString() + 'ms',
-      requiredArtifacts: ['traceContents']
+      requiredArtifacts: ['traceContents', 'URL']
     };
   }
 
@@ -57,7 +57,7 @@ class FirstMeaningfulPaint extends Audit {
       if (!traceContents || !Array.isArray(traceContents)) {
         throw new Error(FAILURE_MESSAGE);
       }
-      const evts = this.collectEvents(traceContents);
+      const evts = this.collectEvents(traceContents, artifacts.URL.initialUrl);
 
       const navStart = evts.navigationStart;
       const fCP = evts.firstContentfulPaint;
@@ -144,9 +144,8 @@ class FirstMeaningfulPaint extends Audit {
   /**
    * @param {!Array<!Object>} traceData
    */
-  static collectEvents(traceData) {
+  static collectEvents(traceData, url) {
     let mainFrameID;
-    let navigationStart;
     let firstContentfulPaint;
     const layouts = new Map();
     const paints = [];
@@ -155,25 +154,16 @@ class FirstMeaningfulPaint extends Audit {
     // const events = model.timelineModel().mainThreadEvents();
     const events = traceData;
 
+    // find the didStartProvisionalLoad evt with our intended URL
+    const loadStarted = traceData.find(e => e.name === 'RenderFrameImpl::didStartProvisionalLoad' && e.args.url.startsWith(url));
+    const navigationStart = traceData.filter(e => e.name === 'navigationStart' && e.ts <= loadStarted.ts).slice(-1)[0];
+
     // Parse the trace for our key events and sort them by timestamp.
     events.filter(e => {
       return e.cat.includes('blink.user_timing') ||
         e.name === 'FrameView::performLayout' ||
-        e.name === 'Paint' ||
-        e.name === 'TracingStartedInPage';
-    }).sort((event0, event1) => {
-      return event0.ts - event1.ts;
+        e.name === 'Paint';
     }).forEach(event => {
-      // Grab the page's ID from the first TracingStartedInPage in the trace
-      if (event.name === 'TracingStartedInPage' && !mainFrameID) {
-        mainFrameID = event.args.data.page;
-      }
-
-      // Record the navigationStart, but only once TracingStartedInPage has started
-      // which is when mainFrameID exists
-      if (event.name === 'navigationStart' && !!mainFrameID && !navigationStart) {
-        navigationStart = event;
-      }
       // firstContentfulPaint == the first time that text or image content was
       // painted. See src/third_party/WebKit/Source/core/paint/PaintTiming.h
       // COMPAT: firstContentfulPaint trace event first introduced in Chrome 49 (r370921)

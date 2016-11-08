@@ -443,7 +443,10 @@ class Driver {
       // When the tracing has ended this will fire with a stream handle.
       this.once('Tracing.tracingComplete', streamHandle => {
         this._readTraceFromStream(streamHandle)
-            .then(traceContents => resolve(traceContents), reject);
+          .then(trace => {
+            trace = trace.traceEvents.sort((evtA, evtB) => evtA.ts - evtB.ts);
+            resolve(trace);
+          }, reject);
       });
 
       // Issue the command to stop tracing.

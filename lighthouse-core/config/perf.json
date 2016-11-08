@@ -2,7 +2,9 @@
   "passes": [{
     "recordNetwork": true,
     "recordTrace": true,
-    "gatherers": []
+    "gatherers": [
+      "url"
+    ]
   }],
 
   "audits": [

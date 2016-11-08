@@ -21,6 +21,7 @@ function getNavStartEvt(traceEvents, url) {
   const traceData = traceEvents;
   // find the didStartProvisionalLoad evt with our intended URL
   const loadStarted = traceData.find(e => e.name === 'RenderFrameImpl::didStartProvisionalLoad' && e.args.url.startsWith(url));
+  // need to verify this is the correct one.
   const navigationStart = traceData.filter(e => e.name === 'navigationStart' && e.ts <= loadStarted.ts).slice(-1)[0];
   return navigationStart;
 }
