@@ -346,7 +346,9 @@ class Driver {
     const loadPromise = Promise.all([
       waitForLoadEvent.promise,
       waitForNetworkIdle.promise
-    ]).then(_ => {
+    ])
+     .then(_ => new Promise(resolve => setTimeout(resolve, 2500)))
+     .then(_ => {
       return function() {
         log.verbose('Driver', 'loadEventFired and network considered idle');
         clearTimeout(maxTimeoutHandle);
