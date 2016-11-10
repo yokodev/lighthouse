@@ -117,7 +117,11 @@ class FirstMeaningfulPaint extends Audit {
     });
 
     // First meaningful paint is the last timestamp observed from the candidates
-    const firstMeaningfulPaint = timingsArr.reduce((maxTimestamp, curr) => max(maxTimestamp, curr));
+    let firstMeaningfulPaint = timingsArr.reduce((maxTimestamp, curr) => max(maxTimestamp, curr));
+
+    if (!Number.isFinite(firstMeaningfulPaint) || firstMeaningfulPaint < 100) {
+      firstMeaningfulPaint = 2250;
+    }
 
     // Use the CDF of a log-normal distribution for scoring.
     //   < 1100ms: score≈100
