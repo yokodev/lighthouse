@@ -99,10 +99,10 @@ limitations under the License.
                     {{#unless ../../scored }}
                       <strong class="subitem__category">{{ subItem.category }}:</strong>
                     {{/unless}}
-                    
+
                     {{ subItem.description }}
 
-                    {{~#if (and subItem.displayValue (not (is-bool subItem.displayValue))) ~}}
+                    {{#if subItem.displayValue }}
                       <strong class="subitem__raw-value">: {{ subItem.displayValue }}</strong>
                     {{/if}}
 
