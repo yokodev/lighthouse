@@ -58,6 +58,9 @@ class Runner {
     // ... or that there are artifacts & audits.
     const validArtifactsAndAudits = config.artifacts && config.audits;
 
+    // traces to potentially deliver to parent module
+    let tracesToInclude = [];
+
     // Make a run, which can be .then()'d with whatever needs to run (based on the config).
     let run = Promise.resolve();
 
@@ -76,7 +79,12 @@ class Runner {
 
       // Basic check that the traces (gathered or loaded) are valid.
       run = run.then(artifacts => {
-        for (const passName of Object.keys(artifacts.traces || {})) {
+        const traces = artifacts.traces || {};
+        if (opts.includeTrace) {
+          tracesToInclude = traces;
+        }
+
+        for (const passName of Object.keys(traces)) {
           const trace = artifacts.traces[passName];
           if (!Array.isArray(trace.traceEvents)) {
             throw new Error(passName + ' trace was invalid. `traceEvents` was not an array.');
@@ -103,6 +111,7 @@ class Runner {
 
       // Run each audit sequentially, the auditResults array has all our fine work
       const auditResults = [];
+
       run = run.then(artifacts => config.audits.reduce((chain, audit) => {
         return chain.then(_ => {
           return Runner._runAudit(audit, artifacts);
@@ -137,6 +146,7 @@ class Runner {
           initialUrl: opts.initialUrl,
           url: opts.url,
           audits: formattedAudits,
+          traces: opts.includeTrace ? tracesToInclude : undefined,
           aggregations
         };
       });
