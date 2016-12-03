@@ -23,14 +23,16 @@ limitations under the License.
   <meta name="viewport" content="width=device-width">
   <title>Lighthouse report: {{ url }}</title>
   <style>{{{ css }}}</style>
-  <script>{{{ script }}}</script>
+  {{{ script }}}
 </head>
 <body>
 
-<script>
-  // expose the original results
+<!--
+  <script>
+  // the original results
   self.lhresults = {{{ lhresults }}};
-</script>
+  </script>
+-->
 
 <div class="js-report report">
   <section class="report-body">

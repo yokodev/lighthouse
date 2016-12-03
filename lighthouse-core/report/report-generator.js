@@ -173,7 +173,8 @@ class ReportGenerator {
    * @return {string}
    */
   getReportJS() {
-    return fs.readFileSync(path.join(__dirname, './scripts/lighthouse-report.js'), 'utf8');
+    const scriptSrc = fs.readFileSync(path.join(__dirname, './scripts/lighthouse-report.js'), 'utf8');
+    return `<script>${scriptSrc}</script>`;
   }
 
   /**
@@ -261,14 +262,16 @@ class ReportGenerator {
     });
 
     const template = Handlebars.compile(this.getReportTemplate());
+    reportContext = reportContext || 'extension'; // could be: devtools, extension
+
     return template({
       url: results.url,
       lighthouseVersion: results.lighthouseVersion,
       generatedTime: this._formatTime(results.generatedTime),
       lhresults: this._escapeScriptTags(JSON.stringify(results, null, 2)),
       css: this.getReportCSS(),
-      reportContext: reportContext || 'extension', // devtools, extension, cli
-      script: this.getReportJS(),
+      reportContext: reportContext,
+      script: reportContext === 'devtools' ? '' : this.getReportJS(),
       aggregations: results.aggregations,
       auditsByCategory: this._createPWAAuditsByCategory(results.aggregations)
     });
