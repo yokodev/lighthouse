@@ -101,3 +101,7 @@
 #log.show {
   transform: translateY(0);
 }
+.share.disable {
+  opacity: 0.2;
+  pointer-events: none;
+}
